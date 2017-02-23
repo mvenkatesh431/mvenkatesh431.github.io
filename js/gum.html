@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>getUserMedia Testing !!</title>
+</head>
+<body>
+<a href="http://sillycodes.com">Webcam tesing.</a>
+<video id="localVid" autoplay muted ></video>
+<video id="remoteVid" autoplay  ></video>
+
+<div>
+	<button id="start" onclick="start()">start</button>
+	<button id="stop" onclick="stop()">stop</button>
+</div>
+
+<script type="text/javascript">
+	var localVid=document.getElementById("localVid");
+	var remoteVid=document.getElementById("remoteVid");
+
+	var startbutton=document.getElementById("start");
+   var hangupbutton=document.getElementById("stop");
+
+   hangupbutton.disable=true;
+
+
+   function hasgetUserMedia()
+   {
+   	if (navigator.mediaDevices === undefined || navigator.mediaDevices.getUserMedia === undefined ) {
+  			console.log("Your Doesn't support the getUserMedia");
+  			return;
+		}
+		else{
+			console.log("Your Browser Supports getUserMedia");
+			return 1;
+		}
+   }
+
+
+   function getUserMediaSuccess(stream){
+   	localVid.srcObject = stream;
+		localVid.onloadedmetadata = function () {
+			localVid.play();
+		}
+   }
+
+   function getUserMediaError(error){
+   	console.log(error.name + " : " +error.message);
+   }
+
+	function start()
+	{
+		startbutton.disabled=true;
+		hangupbutton.disabled=false;
+
+		if(hasgetUserMedia()) {
+			var constarints = { audio : true, video : true};
+			navigator.mediaDevices.getUserMedia(constarints).then( getUserMediaSuccess ).catch( getUserMediaError );
+		}
+	}
+
+	function stop(){
+		console.log("stop button clicked ");
+		localVid.pause();
+		hangupbutton.disabled=true;
+		startbutton.disabled=false;
+		//localVid.src="";
+	}
+
+
+
+</script>
+
+</body>
+</html>

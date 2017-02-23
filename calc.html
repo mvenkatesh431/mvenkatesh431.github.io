@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>calc</title>
+  </head>
+  <body>
+    <label for="n1">Number 1 :</label>
+    <input type="text" name="n1" id="n1">
+    <br>
+    <label for="n2">Number 2</label>
+    <input type="text" name="n2" id="n2">
+    <br>
+    <button type="button" name="button" onclick="multiply()">Multiply</button>
+    <button type="button" name="button" onclick="division()">Division</button>
+    <p id ="result"></p>
+
+    <script type="text/javascript">
+
+      function multiply() {
+        var n1 = document.getElementById('n1').value;
+        var n2 = document.getElementById('n2').value;
+        var result = document.getElementById('result');
+        result.innerHTML = "Result is : " + (n1 * n2);
+      }
+      function division() {
+        var n1 = document.getElementById('n1').value;
+        var n2 = document.getElementById('n2').value;
+        var result = document.getElementById('result');
+        result.innerHTML = "Division is : " + (n1 / n2);
+      }
+
+    </script>
+
+  </body>
+</html>

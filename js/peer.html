@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>getUserMedia Testing !!</title>
+</head>
+<body>
+<a href="http://sillycodes.com">Webcam tesing.</a>
+<video id="localVid" autoplay muted ></video>
+<video id="remoteVid" autoplay  ></video>
+
+<div>
+	<button id="start" onclick="start()">start</button>
+	<button id="call" onclick="call()">call</button>
+	<button id="stop" onclick="stop()">stop</button>
+</div>
+
+<script type="text/javascript">
+	var localVid=document.getElementById("localVid");
+	var remoteVid=document.getElementById("remoteVid");
+
+	var startbutton=document.getElementById("start");
+	var callbutton=document.getElementById("call");
+	var hangupbutton=document.getElementById("stop");
+
+
+   hangupbutton.disabled=true;
+   callbutton.disabled=true;
+
+	var localStream;
+	var pc1;
+	var pc2;
+	var offerOptions = {
+  		offerToReceiveAudio: 1,
+  		offerToReceiveVideo: 1
+	};
+	var startTime;
+	var RTCPeerConnection = webkitRTCPeerConnection;
+
+
+   function hasgetUserMedia()
+   {
+   	if (navigator.mediaDevices === undefined || navigator.mediaDevices.getUserMedia === undefined ) {
+  			console.log("Your Doesn't support the getUserMedia");
+  			return;
+		}
+		else{
+			console.log("Your Browser Supports getUserMedia");
+			return 1;
+		}
+   }
+
+
+   function getUserMediaSuccess(stream){
+   	localStream=stream;
+   	localVid.srcObject = stream;
+		localVid.onloadedmetadata = function () {
+			localVid.play();
+		}
+   }
+
+   function getUserMediaError(error){
+   	console.log(error.name + " : " +error.message);
+   }
+
+	function start()
+	{
+		startbutton.disabled=true;
+		hangupbutton.disabled=false;
+		callbutton.disabled=false;
+
+		if(hasgetUserMedia()) {
+			var constarints = { audio : true, video : true};
+			navigator.mediaDevices.getUserMedia(constarints).then( getUserMediaSuccess ).catch( getUserMediaError );
+		}
+	}
+
+	function call()
+	{
+		startbutton.disabled=true;
+		hangupbutton.disabled=false;
+
+		startbutton=window.performance.now();
+		var videoTracks=localStream.getVideoTracks();
+		var audioTracks=localStream.getAudioTracks();
+
+		if(videoTracks.length > 0){
+			console.log("Using Video device "+ videoTracks[0].label);
+
+		}
+
+		if(audioTracks.length > 0){
+			console.log("using Audio Device "+ audioTracks[0].label);
+		}
+
+		// Now it's time to create the peerconnections for user 1 and user 2
+		var servers = null;
+
+		pc1 = new RTCPeerConnection(servers);
+		console.log("pc1 is created");
+
+		pc2 = new RTCPeerConnection(servers);
+		console.log("pc2 is created");
+
+		pc1.onicecandidate = function(e){
+			console.log(e);
+			if(e.candidate){
+				pc2.addIceCandidate(
+						new RTCIceCandidate(e.candidate)
+				).then (
+					function (){
+						console.log(" pc1 onicecandidate is success");
+					}, 
+					function(error){
+						console.log(" pc1 onicecandidate Error"+error.toString());
+					}
+					);
+				console.log("candidate " + e.candidate.candidate );	
+			}
+		};
+
+
+		pc2.onicecandidate = function(e){
+			console.log(e);
+			if(e.candidate){
+				pc1.addIceCandidate(
+					new RTCIceCandidate(e.candidate)
+					).then (
+						function(){
+							console.log("pc2 addIceCandidate is successful");
+						},
+						function(err){
+							console.log("pc2 addIceCandidate is Failed with error : "+err.toString());
+						}
+					);
+					console.log("ICE candidate Added : "+ e.candidate.candidate);
+			}
+		};
+
+
+		pc1.oniceconnectionstatechange = function(e) {
+			console.log("ICE state: " + pc1.iceConnectionState);
+			console.log("state change Event : "+ e);
+  		};
+  		
+  		pc2.oniceconnectionstatechange = function(e) {
+    		console.log("ICE state: " + pc1.iceConnectionState);
+			console.log("state change Event : "+ e);
+  		};
+
+		pc2.onaddstream = gotRemoteStream;
+		pc1.addStream(localStream);
+		console.log("pc1 added localStream to peerconnections");
+
+		pc1.createOffer(offerOptions).then (createOfferSuccess, function(error){
+			console.log("create Offer Failed : " + error.toString());
+		});
+
+	}
+
+	function gotRemoteStream(e) {
+  		remoteVid.srcObject = e.stream;
+  		console.log('pc2 received remote stream');
+	}
+
+
+	function createOfferSuccess(desc)
+	{
+		console.log("Create Offer Success " + desc.sdp);
+		console.log("setting PC1 local Description");
+		pc1.setLocalDescription(desc).then(
+			function(){
+			 console.log("pc1 setLocalDescription success ")
+			}, function (error){
+				console.log("pc1 setLocalDescription error"+ error.toString());
+			});
+		pc2.setRemoteDescription(desc).then(function(desc){
+			console.log("pc2 setRemoteDescription success");
+		}, function(error){
+			console.log("pc2 setRemoteDescription failed"+error.toString());
+		});
+
+		console.log("createAnswer is started ");
+		pc2.createAnswer().then( createAnswerSuccess, function(error){
+			console.log("create Answer Failed : " + error.toString());
+		});
+
+	}
+
+	function createAnswerSuccess(desc){
+		console.log("createAnswer success : "+desc.sdp);
+
+		pc2.setLocalDescription(desc).then(
+			function(){
+			 console.log("pc2 setLocalDescription success ")
+			}, function (error){
+				console.log("pc2 setLocalDescription error"+ error.toString());
+			});
+
+		pc1.setRemoteDescription(desc).then(
+			function (desc){
+				console.log("pc1 setRemoteDescription success");
+			},
+			function (error){
+				console.log("pc1 setRemoteDescription failed"+error.toString());
+			});
+	}
+
+
+	function stop(){
+		console.log("stop button clicked ");
+		pc1.close();
+		pc2.close();
+		pc1 = null;
+  		pc2 = null;
+		hangupbutton.disabled=true;
+		startbutton.disabled=false;
+		//localVid.src="";
+	}
+
+</script>
+<script src="adapter.js"></script>
+
+</body>
+</html>
